@@ -53,54 +53,53 @@ class Output_Layer:
         else:
             return neuron.raw_pass(input)
     
-    def fit(self, X, y, learning_rate, gradient_clip=1.0):
-        weight_change = [[] for _ in self.get_neurons()[0].get_weights()]
-        error = []  # Move this outside the loop
+    def fit(self, X, y, learning_rate):
+        weight_change = [[w] for w in self.get_neurons()[0].get_weights()]
+        error = [0]
         neurons = self.get_neurons()
-
+        self.get_neurons()[0].change_weights([0.5, 0.5, -0.36])
         for k in range(len(X)):
             for n in neurons:
                 weights = n.get_weights()[:-1]
-                adj_weights = [weights[x] - (learning_rate * (n.step_pass(X[k]) - y[k]) * self.dactivation(n, X[k]) * X[k][x]) for x in range(len(weights))]
-                adj_weights.append(n.get_weights()[-1] - (learning_rate * (n.step_pass(X[k]) - y[k]) * self.dactivation(n, X[k])))
-                
-                # Gradient clipping
-                adj_weights = [max(min(w, gradient_clip), -gradient_clip) for w in adj_weights]
-                
+                # a = (self.forward_pass(X[k])[0]-y[k])
+                # b = self.forward_pass(X[k])[0]
+                # c = self.dactivation(n, X[k])
+                # d = X[k]
+                # e = [-learning_rate*(self.forward_pass(X[k])[0]-y[k])*self.dactivation(n, X[k])*X[k][x] for x in range(len(weights))]
+                adj_weights = [weights[x]-learning_rate*(self.forward_pass(X[k])[0]-y[k])*self.dactivation(n, X[k])*X[k][x] for x in range(len(weights))]
+                adj_weights.append(n.get_weights()[-1:][0]-learning_rate*(self.forward_pass(X[k])[0]-y[k])*self.dactivation(n, X[k]))
                 n.change_weights(adj_weights)
-                
                 for x in range(len(adj_weights)):
                     weight_change[x].append(adj_weights[x])
-            
-            # Move this outside the inner loop
-            error.append(y[k] - n.step_pass(X[k]))
-
-        self.set_neurons(neurons)
-
+                # print("weight",weights)
+                # print("input",X[k])
+            error.append(y[k]-n.step_pass(X[k]))
+            self.set_neurons(neurons)
         return weight_change, error
+    
     
 ## testing
 
 start = time.time()
 
-layer = Output_Layer(1, 1)
+layer = Output_Layer(2, 1)
 
-X = np.array([np.random.uniform(-1,1,2) for x in range(1000)])
-y = [3*x[0]+3 for x in X]
+X = np.array([np.random.uniform(-1.1,1.1,2) for x in range(10000)])
+y = [30*x[0]+20*x[1]+30 for x in X]
 
-change, err = layer.fit(X,y, learning_rate=0.001)
+change, err = layer.fit(X,y, learning_rate=0.0002)
 
 print(layer.get_neurons()[0].get_weights())
 
 end = time.time()
 print(end-start)
 
-fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(6, 10))
+fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(6, 10))
 
-ycoef = [-3,3]
-print(len(change))
+ycoef = [30,20,30]
+
 for x in range(len(change)):
     axes[x].plot(change[x])
     axes[x].axhline(y=ycoef[x],color='black')
-axes[2].scatter(range(len(err)),err)
+axes[3].scatter(range(len(err)),err)
 plt.show()

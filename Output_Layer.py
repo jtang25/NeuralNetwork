@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib as plt
 from Neuron import *
-import time
+import time 
 import matplotlib.pyplot as plt
 
 class Output_Layer:
@@ -61,8 +61,8 @@ class Output_Layer:
         for k in range(len(X)):
             for n in neurons:
                 weights = n.get_weights()[:-1]
-                adj_weights = [weights[x]-(learning_rate*(self.forward_pass(X[k])-y[k])*self.dactivation(n, X[k])*X[k][x])[0] for x in range(len(weights))]
-                adj_weights.append(n.get_weights()[-1:][0]-(learning_rate*(self.forward_pass(X[k])-y[k])*self.dactivation(n, X[k]))[0])
+                adj_weights = [weights[x]-(learning_rate*(self.forward_pass(X[k])-y[k])*X[k][x])[0] for x in range(len(weights))]
+                adj_weights.append(n.get_weights()[-1:][0]-(learning_rate*(self.forward_pass(X[k])-y[k]))[0])
                 n.change_weights(adj_weights)
                 for x in range(len(adj_weights)):
                     weight_change[x].append(adj_weights[x])
@@ -77,22 +77,24 @@ start = time.time()
 
 layer = Output_Layer(2, 1)
 
-X = np.array([np.random.uniform(-1,1,2) for x in range(50)])
-y = [-30*x[0]+20*x[1]+30 for x in X]
+a = np.random.uniform(-100,100)
+b = np.random.uniform(-100,100)
+c = np.random.uniform(-100,100)
 
-change, err = layer.fit(X,y, learning_rate=0.01)
+X = np.array([np.random.uniform(-10,10,2) for x in range(1000)])
+y = [a*x[0]+b*x[1]+c for x in X]
+
+change, err = layer.fit(X,y, learning_rate=0.005)
 
 print(layer.get_neurons()[0].get_weights())
 
 end = time.time()
 print(end-start)
 
-# fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(6, 10))
-
-# ycoef = [-30,20,30]
-
-# for x in range(len(change)):
-#     axes[x].plot(change[x])
-#     axes[x].axhline(y=ycoef[x],color='black')
-# axes[3].scatter(range(len(err)),err)
-# plt.show()
+plt.plot(change[0],label='0')
+plt.axhline(y=a, color='blue')
+plt.plot(change[1],label='1')
+plt.axhline(y=b, color='orange')
+plt.plot(change[2],label='2')
+plt.axhline(y=c, color='green')
+plt.legend()
