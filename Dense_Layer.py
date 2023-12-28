@@ -3,17 +3,20 @@ import matplotlib as plt
 from Neuron import *
 
 class Dense_Layer:
-    def __init__(self, n_of_neurons, input_shape, activation_func=none):
+    def __init__(self, input_shape, output_shape, activation_func=none):
         neuron_layer = np.array([])
-        for x in range(n_of_neurons):
+        for x in range(output_shape):
             neuron_layer = np.append(neuron_layer,Perceptron(n_of_weights=input_shape, step=activation_func, activation=activation_func))
         self.neurons = neuron_layer
-    
+        
     def get_neuron(self, n):
         return self.neurons[n]
     
     def get_neurons(self):
         return self.neurons
+    
+    def set_neurons(self, adj_neurons):
+        self.neurons = adj_neurons
     
     def forward_pass(self, X):
         output = np.array([])
@@ -21,29 +24,39 @@ class Dense_Layer:
             output = np.append(output,neuron.step_pass(X))
         return output
     
-    def relu(input):
+    def relu(self, input):
         if input>0:
             return input
         else:
             return 0
         
-    def drelu(input):
+    def drelu(self, input):
         if input>0:
             return 1
         else:
             return 0
 
-    def sigmoid(input):
+    def sigmoid(self, input):
         return 1/(1+np.e**(-input))
 
-    def dsigmoid(input):
-        return (np.e**(-input))/((1+(np.e**(-input)))**2)
+    def dsigmoid(self, input):
+        return self.sigmoid(input)*(1-self.sigmoid(input))
     
-    # def fit(self, x, y):
-    #     neurons = self.get_neurons()
-    #     for x in neurons:
-    #         output = self.forward_pass(x)
-            
-
-layer = Dense_Layer(4, 3, activation_func="relu")
-print(layer.fit(1,2))
+    def dactivation(self, neuron, input):
+        activation = neuron.get_activation()
+        if activation=='sigmoid':
+            return dsigmoid(neuron.raw_pass(input))
+        elif activation=='relu':
+            return drelu(neuron.raw_pass(input))
+        else:
+            return 1
+    
+    def fit(self, X, y, learning_rate):
+        neurons = self.get_neurons()
+        for k in range(len(X)):
+            for n in neurons:
+                weights = n.get_weights()[:-1]
+                adj_weights = [weights[x]-(learning_rate*(self.forward_pass(X[k])-y[k])*self.dactivation(n,X[k])*X[k][x])[0] for x in range(len(weights))]
+                adj_weights.append(n.get_weights()[-1:][0]-(learning_rate*(self.forward_pass(X[k])-y[k])*self.dactivation(n,X[k]))[0])
+                n.change_weights(adj_weights)
+            self.set_neurons(neurons)
