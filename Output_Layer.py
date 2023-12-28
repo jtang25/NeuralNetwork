@@ -24,7 +24,7 @@ class Output_Layer:
         for neuron in self.neurons:
             output = np.append(output,neuron.step_pass(X))
         return output
-    
+     
     def relu(self, input):
         if input>0:
             return input
