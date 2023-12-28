@@ -24,7 +24,7 @@ class Output_Layer:
         for neuron in self.neurons:
             output = np.append(output,neuron.step_pass(X))
         return output
-     
+    
     def relu(self, input):
         if input>0:
             return input
@@ -51,8 +51,14 @@ class Output_Layer:
             return drelu(neuron.raw_pass(input))
         else:
             return 1
+            return 1
+        
+    def gradient(self, X, y):
+        neurons = self.get_neurons()
+        return [(self.forward_pass(X[k])-y[k])*self.dactivation(neurons[n],X)*X[n]for n in len(neurons)]
     
     def fit(self, X, y, learning_rate):
+        error = [0]
         neurons = self.get_neurons()
         for k in range(len(X)):
             for n in neurons:
@@ -60,53 +66,35 @@ class Output_Layer:
                 adj_weights = [weights[x]-(learning_rate*(self.forward_pass(X[k])-y[k])*self.dactivation(n,X[k])*X[k][x])[0] for x in range(len(weights))]
                 adj_weights.append(n.get_weights()[-1:][0]-(learning_rate*(self.forward_pass(X[k])-y[k])*self.dactivation(n,X[k]))[0])
                 n.change_weights(adj_weights)
+            error.append(y[k]-n.step_pass(X[k]))
             self.set_neurons(neurons)
+        return weight_change, error
+    
+    
+## testing
 
+start = time.time()
 
-# ## testing
+layer = Output_Layer(2, 1)
 
-# start = time.time()
+a = np.random.uniform(-100,100)
+b = np.random.uniform(-100,100)
+c = np.random.uniform(-100,100)
 
-# layer = Output_Layer(2, 1)
+X = np.array([np.random.uniform(-10,10,2) for x in range(1000)])
+y = [a*x[0]+b*x[1]+c for x in X]
 
-# a = np.random.uniform(-100,100)
-# b = np.random.uniform(-100,100)
-# c = np.random.uniform(-100,100)
+change, err = layer.fit(X,y, learning_rate=0.005)
 
-# X = np.array([np.random.uniform(-2,2,2) for x in range(1000)])
-# y = [a*x[0]+b*x[1]+c for x in X]
+print(layer.get_neurons()[0].get_weights())
 
-# change, err = layer.fit(X,y, learning_rate=0.005)
+end = time.time()
+print(end-start)
 
-# print(layer.get_neurons()[0].get_weights())
-
-# end = time.time()
-# print(end-start)
-
-# fig, axs = plt.subplots(4, 1, figsize=(7, 12), sharex=True)
-
-# # Plot for change[0]
-# axs[0].plot(change[0], label='0', color='blue')
-# axs[0].axhline(y=a, color='blue')
-# axs[0].legend()
-# axs[0].set_title('Change 0')
-
-# # Plot for change[1]
-# axs[1].plot(change[1], label='1', color='orange')
-# axs[1].axhline(y=b, color='orange')
-# axs[1].legend()
-# axs[1].set_title('Change 1')
-
-# # Plot for change[2]
-# axs[2].plot(change[2], label='2', color='green')
-# axs[2].axhline(y=c, color='green')
-# axs[2].legend()
-# axs[2].set_title('Change 2')
-
-# # Plot for error
-# axs[3].plot(err, label='error', color='red')
-# axs[3].legend()
-# axs[3].set_title('Error')
-
-# plt.tight_layout()
-# plt.show()
+plt.plot(change[0],label='0')
+plt.axhline(y=a, color='blue')
+plt.plot(change[1],label='1')
+plt.axhline(y=b, color='orange')
+plt.plot(change[2],label='2')
+plt.axhline(y=c, color='green')
+plt.legend()
