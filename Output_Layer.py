@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib as plt
 from Neuron import *
 import time 
 import matplotlib.pyplot as plt
@@ -53,6 +52,7 @@ class Output_Layer:
             return drelu(neuron.raw_pass(input))
         else:
             return 1
+            return 1
     
     def pure_dactivation(self, input, activation):
         if activation=='sigmoid':
@@ -80,48 +80,4 @@ class Output_Layer:
                     weight_change[x].append(adj_weights[x])
             error.append(abs(y[k]-n.step_pass(X[k])))
             self.set_neurons(neurons)
-        return weight_change, error
-
-# ## testing
-
-# start = time.time()
-
-# layer = Output_Layer(2, 1)
-
-# a = np.random.uniform(-100,100)
-# b = np.random.uniform(-100,100)
-# c = np.random.uniform(-100,100)
-
-# X = np.array([np.random.uniform(-1,1,2) for x in range(1000)])
-# y = [a*x[0]+b*x[1]+c for x in X]
-
-# change, err = layer.fit(X,y, learning_rate=0.01)
-
-# print(layer.get_neurons()[0].get_weights())
-
-# end = time.time()
-# print(end-start)
-
-# print('a:',a)
-# print('b:',b)
-# print('c:',c)
-
-# plt.figure(figsize=(4,10))
-
-# plt.subplot(4,1,1)
-# plt.plot(change[0],label='0', color='blue')
-# plt.axhline(y=a, color='blue')
-
-# plt.subplot(4,1,2)
-# plt.plot(change[1],label='1', color='orange')
-# plt.axhline(y=b, color='orange')
-
-# plt.subplot(4,1,3)
-# plt.plot(change[2],label='2', color='green')
-# plt.axhline(y=c, color='green')
-
-# plt.subplot(4,1,4)
-# plt.scatter(range(len(err)), err, label='error', s=0.1)
-# plt.axhline(y=0, color='blue')
-# plt.legend()
-# plt.show()
+        return error

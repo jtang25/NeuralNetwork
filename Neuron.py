@@ -70,7 +70,7 @@ class Perceptron:
             pred = self.step_pass(X[j])
             for i in range(len(weights)-1):
                 gradient = -2*X[j][i]*self.activation(weights[i]*X[j][i])*(y[j]-pred)
-                weights[i] = weights[i] - learning_rate*gradient    
+                weights[i] = weights[i] - learning_rate*gradient
             weights[len(weights)-1] = weights[len(weights)-1] - learning_rate*-2*(y[j]-pred)
         return preds
     
