@@ -3,6 +3,7 @@ import matplotlib as plt
 from Neuron import *
 import time 
 import matplotlib.pyplot as plt
+import math
 
 class Output_Layer:
     def __init__(self, input_shape, output_shape, activation_func=none):
@@ -52,13 +53,22 @@ class Output_Layer:
             return drelu(neuron.raw_pass(input))
         else:
             return 1
+    
+    def pure_dactivation(self, input, activation):
+        if activation=='sigmoid':
+            return dsigmoid(input)
+        elif activation=='relu':
+            return drelu(input)
+        else:
+            return 1
         
     def gradient(self, X, y):
         neurons = self.get_neurons()
-        return [(self.forward_pass(X[k])-y[k])*self.dactivation(neurons[n],X)*X[n]for n in len(neurons)]
+        return [(self.forward_pass(X)-y)*self.dactivation(neurons[n],X)*X[n]for n in len(neurons)]
     
     def fit(self, X, y, learning_rate):
-        error = [0]
+        weight_change = [[w] for w in self.get_neurons()[0].get_weights()]
+        error = []
         neurons = self.get_neurons()
         for k in range(len(X)):
             for n in neurons:
@@ -66,6 +76,52 @@ class Output_Layer:
                 adj_weights = [weights[x]-(learning_rate*(self.forward_pass(X[k])-y[k])*self.dactivation(n,X[k])*X[k][x])[0] for x in range(len(weights))]
                 adj_weights.append(n.get_weights()[-1:][0]-(learning_rate*(self.forward_pass(X[k])-y[k])*self.dactivation(n,X[k]))[0])
                 n.change_weights(adj_weights)
-            error.append(y[k]-n.step_pass(X[k]))
+                for x in range(len(adj_weights)):
+                    weight_change[x].append(adj_weights[x])
+            error.append(abs(y[k]-n.step_pass(X[k])))
             self.set_neurons(neurons)
-        return error
+        return weight_change, error
+
+# ## testing
+
+# start = time.time()
+
+# layer = Output_Layer(2, 1)
+
+# a = np.random.uniform(-100,100)
+# b = np.random.uniform(-100,100)
+# c = np.random.uniform(-100,100)
+
+# X = np.array([np.random.uniform(-1,1,2) for x in range(1000)])
+# y = [a*x[0]+b*x[1]+c for x in X]
+
+# change, err = layer.fit(X,y, learning_rate=0.01)
+
+# print(layer.get_neurons()[0].get_weights())
+
+# end = time.time()
+# print(end-start)
+
+# print('a:',a)
+# print('b:',b)
+# print('c:',c)
+
+# plt.figure(figsize=(4,10))
+
+# plt.subplot(4,1,1)
+# plt.plot(change[0],label='0', color='blue')
+# plt.axhline(y=a, color='blue')
+
+# plt.subplot(4,1,2)
+# plt.plot(change[1],label='1', color='orange')
+# plt.axhline(y=b, color='orange')
+
+# plt.subplot(4,1,3)
+# plt.plot(change[2],label='2', color='green')
+# plt.axhline(y=c, color='green')
+
+# plt.subplot(4,1,4)
+# plt.scatter(range(len(err)), err, label='error', s=0.1)
+# plt.axhline(y=0, color='blue')
+# plt.legend()
+# plt.show()

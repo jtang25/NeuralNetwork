@@ -50,6 +50,3 @@ class Dense_Layer:
             return drelu(neuron.raw_pass(input))
         else:
             return 1
-
-layer = Dense_Layer(4, 3, activation_func="relu")
-# print(layer.fit(1,2))
