@@ -6,7 +6,7 @@ import math
 
 class Output_Layer:
     def __init__(self, input_shape, output_shape, activation_func=none):
-        neuron_layer = np.array([])
+        neuron_layer = np.array([]) 
         for x in range(output_shape):
             neuron_layer = np.append(neuron_layer,Perceptron(n_of_weights=input_shape, step=activation_func, activation=activation_func))
         self.neurons = neuron_layer
@@ -51,7 +51,6 @@ class Output_Layer:
         elif activation=='relu':
             return drelu(neuron.raw_pass(input))
         else:
-            return 1
             return 1
     
     def pure_dactivation(self, input, activation):
