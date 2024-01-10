@@ -12,6 +12,18 @@ def drelu(input):
         return 1
     else:
         return 0
+    
+def lrelu(input):
+    if input>0:
+        return input
+    else:
+        return 0.1*input
+
+def dlrelu(input):
+    if input>0:
+        return 1
+    else:
+        return 0.1
 
 def sigmoid(input):
     return 1/(1+np.e**(-input))
@@ -55,6 +67,8 @@ class Perceptron:
                 output = relu(output)
             case "sigmoid":
                 output = sigmoid(output)
+            case "lrelu": 
+                output = lrelu(output)
             case _:
                 output = output
         return output

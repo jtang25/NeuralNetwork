@@ -44,12 +44,26 @@ class Output_Layer:
     def dsigmoid(self, input):
         return self.sigmoid(input)*(1-self.sigmoid(input))
     
+    def lrelu(self, input):
+        if input>0:
+            return input
+        else:
+            return 0.1*input
+    
+    def dlrelu(self, input):
+        if input>0:
+            return 1
+        else:
+            return 0.1
+    
     def dactivation(self, neuron, input):
         activation = neuron.get_activation()
         if activation=='sigmoid':
             return dsigmoid(neuron.raw_pass(input))
         elif activation=='relu':
             return drelu(neuron.raw_pass(input))
+        elif activation=='lrelu':
+            return dlrelu(neuron.raw_pass(input))
         else:
             return 1
     
@@ -58,6 +72,8 @@ class Output_Layer:
             return dsigmoid(input)
         elif activation=='relu':
             return drelu(input)
+        elif activation=='lrelu':
+            return dlrelu(input)
         else:
             return 1
         

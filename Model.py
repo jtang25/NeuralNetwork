@@ -32,8 +32,20 @@ class Model:
             return dsigmoid(neuron.raw_pass(input))
         elif activation=='relu':
             return drelu(neuron.raw_pass(input))
+        elif activation=='lrelu':
+            return dlrelu(neuron.raw_pass(input))
         else:
             return 1
+        
+    def summary(self):
+        for l in self.get_Layers():
+            layer_type = str(type(l))
+            if 'Dense' in layer_type:
+                print('Dense Layer  |',len(l.get_neurons()),'neurons |',len(l.get_neurons()[0].get_weights())-1,'weights | 1 bias')
+            elif 'Output' in layer_type:
+                print('Output Layer |',len(l.get_neurons()),'outputs |',len(l.get_neurons()[0].get_weights())-1,'weights | 1 bias')
+        print('Input Shape:',len(self.get_Layers()[0].get_neurons()[0].get_weights())-1)
+        print('Output Shape:',len(self.get_Layers()[-1].get_neurons()))
     
     def fit(self, X, y, learning_rate):
         error = []
@@ -88,21 +100,5 @@ class Model:
                 neurons[j].change_weights(adj_weights)
             input_layer.set_neurons(neurons)
             self.set_Layer(input_layer, 0)
-            error.append(self.forward_pass(X[x])-y[x])
+            error.append(abs(self.forward_pass(X[x])-y[x]))
         return error
-
-model = Model(Layers=[
-    Dense_Layer(input_shape=2,output_shape=4),
-    Dense_Layer(input_shape=4,output_shape=4),
-    Output_Layer(input_shape=4,output_shape=1)
-])
-
-X = np.random.uniform(-1, 1, size=(10000, 2))
-y = [2*X[x][0]+-2*X[x][1]-1 for x in range(len(X))]
-
-error = model.fit(X,y,learning_rate=0.001)
-plt.scatter(range(len(error)),error, s=1)
-plt.xlabel("Epochs")
-plt.ylabel("Error")
-plt.title("{layers}-Layer Deep Neural Network Error".format(layers=len(model.get_Layers())))
-plt.show()

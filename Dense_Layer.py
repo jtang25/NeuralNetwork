@@ -35,6 +35,18 @@ class Dense_Layer:
             return 1
         else:
             return 0
+    
+    def lrelu(self, input):
+        if input>0:
+            return input
+        else:
+            return 0.1*input
+    
+    def dlrelu(self, input):
+        if input>0:
+            return 1
+        else:
+            return 0.1
 
     def sigmoid(self, input):
         return 1/(1+np.e**(-input))
@@ -48,5 +60,7 @@ class Dense_Layer:
             return dsigmoid(neuron.raw_pass(input))
         elif activation=='relu':
             return drelu(neuron.raw_pass(input))
+        elif activation=='lrelu':
+            return dlrelu(neuron.raw_pass(input))
         else:
             return 1
