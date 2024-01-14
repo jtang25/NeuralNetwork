@@ -15,5 +15,3 @@ This project presents a hands-on approach to deep learning by building a Multi-L
 - **Task Versatility**: Successfully demonstrated the network's proficiency in both regression and multi-classification tasks, making it adaptable for various machine learning applications.
 
 - **Benchmark Performance**: The project underwent benchmark tests on popular datasets like MNIST and California Housing, showcasing competitive performance comparable to models developed using established deep learning frameworks.
-
-This project offers a practical and insightful exploration into neural network implementation, empowering individuals to grasp the intricacies of deep learning while achieving reliable performance akin to mainstream frameworks. Elevate your machine learning skills with this custom Neural Network from Scratch, tailored for regression and multi-classification tasks.
