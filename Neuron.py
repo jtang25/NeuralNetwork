@@ -39,6 +39,19 @@ class Perceptron:
         self.weights = np.random.uniform(-1,1,n_of_weights+1)
         self.step = step
         self.activation = activation
+        
+    def drelu(self, input):
+        return 1 if input > 0 else 0
+
+    def dlrelu(self, input):
+        return 1 if input > 0 else 0.1
+
+    def dsigmoid(self, input):
+        s = self.sigmoid(input)
+        return s * (1 - s)
+
+    def sigmoid(self, input):
+        return 1 / (1 + np.exp(-input))
     
     def get_weights(self):
         return self.weights

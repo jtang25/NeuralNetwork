@@ -28,12 +28,13 @@ class Model:
     
     def dactivation(self, neuron, input):
         activation = neuron.get_activation()
-        if activation=='sigmoid':
-            return dsigmoid(neuron.raw_pass(input))
-        elif activation=='relu':
-            return drelu(neuron.raw_pass(input))
-        elif activation=='lrelu':
-            return dlrelu(neuron.raw_pass(input))
+        raw_output = input  # Since 'input' here is the raw output of the neuron
+        if activation == 'sigmoid':
+            return neuron.dsigmoid(raw_output)
+        elif activation == 'relu':
+            return neuron.drelu(raw_output)
+        elif activation == 'lrelu':
+            return neuron.dlrelu(raw_output)
         else:
             return 1
         
@@ -47,58 +48,72 @@ class Model:
         print('Input Shape:',len(self.get_Layers()[0].get_neurons()[0].get_weights())-1)
         print('Output Shape:',len(self.get_Layers()[-1].get_neurons()))
     
-    def fit(self, X, y, learning_rate):
-        error = []
-        for x in range(len(X)):
-            # 2d array of gradients for each layer
-            layer_change_weights = []
-            # derivatives of the last layer
-            output_layer = self.get_Layers()[-1:][0]
-            output_neurons = output_layer.get_neurons()
-            prev_layer = self.get_Layers()[len(self.get_Layers())-2]
-            for n in output_neurons:
-                weights = n.get_weights()[:-1]
-                prev_output = self.layer_output(X[x], len(self.get_Layers())-1)
-                adj_weights = [weights[i]-(learning_rate*(self.forward_pass(X[x])-y[x])*output_layer.dactivation(n,X[x])*prev_output[i])[0] for i in range(len(weights))]
-                adj_weights.append(n.get_weights()[-1:][0]-(learning_rate*(self.forward_pass(X[x])-y[x])*output_layer.dactivation(n,X[x]))[0])
-                n.change_weights(adj_weights)
-                layer_change_weights.append(adj_weights)
-            output_layer.set_neurons(output_neurons)
-            self.set_Layer(output_layer, len(self.get_Layers())-1)
-            layers = self.get_Layers()
-            for k in range(len(layers)-2):
-                layer = layers[len(layers)-2-k]
-                new_layer_change_weights = []
-                neurons = layers[len(layers)-2-k].get_neurons()
-                prev_neurons = layers[len(layers)-1-k].get_neurons()
-                prev_output = self.layer_output(X[k], len(layers)-2-k)
-                for j in range(len(neurons)):
-                    weights = neurons[j].get_weights()[:-1]
-                    d = 0
-                    for l in range(len(prev_neurons)):
-                        d += prev_neurons[l].get_weights()[:-1][j]*layer_change_weights[l][j]
-                    d *= layers[k].dactivation(neurons[j], prev_output)
-                    adj_weights = [weights[i] - (learning_rate*d*prev_output[i]) for i in range(len(weights))]
-                    adj_weights.append(weights[-1:][0]-(learning_rate*d))
-                    neurons[j].change_weights(adj_weights)
-                    new_layer_change_weights.append(adj_weights)
-                layers[len(layers)-2-k].set_neurons(neurons)
-                self.set_Layer(layers[len(layers)-2-k], len(layers)-2-k)
-                layer_change_weights = new_layer_change_weights
-            input_layer = layers[0]
-            neurons = input_layer.get_neurons()
-            prev_neurons = layers[1].get_neurons()
-            for j in range(len(neurons)):
-                weights = neurons[j].get_weights()[:-1]
-                d = 0
-                for l in range(len(prev_neurons)):
-                    prev_weights = prev_neurons[l].get_weights()[:-1]
-                    d += prev_neurons[l].get_weights()[:-1][j]*layer_change_weights[l][j]
-                d *= input_layer.dactivation(neurons[j], X[x])
-                adj_weights = [weights[i] - (learning_rate*d*X[x][i]) for i in range(len(weights))]
-                adj_weights.append(weights[-1:][0]-(learning_rate*d))
-                neurons[j].change_weights(adj_weights)
-            input_layer.set_neurons(neurons)
-            self.set_Layer(input_layer, 0)
-            error.append(abs(self.forward_pass(X[x])-y[x]))
-        return error
+    def fit(self, X, y, learning_rate, epochs=1):
+        err = []
+        for epoch in range(epochs):
+            # Shuffle the dataset at the beginning of each epoch
+            indices = np.arange(len(X))
+            np.random.shuffle(indices)
+            X = X[indices]
+            y = y[indices]
+            
+            epoch_error = []
+            for x_idx in range(len(X)):
+                # Forward pass: store activations and raw outputs
+                activations = [X[x_idx]]
+                raw_outputs = []
+                input = X[x_idx]
+                for layer in self.get_Layers():
+                    layer_activations = []
+                    layer_raw_outputs = []
+                    for neuron in layer.get_neurons():
+                        raw_output = neuron.raw_pass(input)
+                        activation = neuron.step_pass(input)
+                        layer_raw_outputs.append(raw_output)
+                        layer_activations.append(activation)
+                    raw_outputs.append(layer_raw_outputs)
+                    activations.append(layer_activations)
+                    input = layer_activations
+
+                # Compute error at the output layer
+                output_activations = np.array(activations[-1])
+                target = np.array(y[x_idx])
+                error_output_layer = output_activations - target
+
+                # Compute Mean Squared Error (MSE) for this sample
+                sample_mse = np.mean(error_output_layer ** 2)
+                epoch_error.append(sample_mse)
+
+                # Backpropagation
+                deltas = [error_output_layer * np.array(
+                    [self.dactivation(neuron, raw_outputs[-1][i]) for i, neuron in enumerate(self.get_Layers()[-1].get_neurons())])]
+
+                # Backpropagate the error
+                for l in range(len(self.get_Layers()) - 2, -1, -1):
+                    layer = self.get_Layers()[l]
+                    next_layer = self.get_Layers()[l + 1]
+                    delta = []
+                    for i, neuron in enumerate(layer.get_neurons()):
+                        d_activation = self.dactivation(neuron, raw_outputs[l][i])
+                        error = sum([deltas[0][k] * next_layer.get_neurons()[k].get_weights()[i]
+                                    for k in range(len(next_layer.get_neurons()))])
+                        delta_i = error * d_activation
+                        delta.append(delta_i)
+                    deltas.insert(0, delta)
+
+                # Update weights
+                for l in range(len(self.get_Layers())):
+                    layer = self.get_Layers()[l]
+                    input_activation = np.array(activations[l])
+                    for i, neuron in enumerate(layer.get_neurons()):
+                        delta_i = deltas[l][i]
+                        weights = neuron.get_weights()
+                        adj_weights = weights[:-1] - learning_rate * delta_i * input_activation
+                        bias = weights[-1] - learning_rate * delta_i
+                        neuron.change_weights(np.append(adj_weights, bias))
+
+            # Append MSE errors for this epoch
+            err.extend(epoch_error)
+            print(f"Epoch {epoch + 1}/{epochs}, Average MSE: {np.mean(epoch_error)}")
+
+        return err
