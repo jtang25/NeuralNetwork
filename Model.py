@@ -100,7 +100,8 @@ class Model:
                         delta_i = error * d_activation
                         delta.append(delta_i)
                     deltas.insert(0, delta)
-
+                # print(self.get_Layers()[0].get_neurons()[0].get_weights())
+                print(deltas)
                 # Update weights
                 for l in range(len(self.get_Layers())):
                     layer = self.get_Layers()[l]
