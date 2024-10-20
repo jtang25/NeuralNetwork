@@ -3,10 +3,26 @@ import matplotlib as plt
 from Dense_Layer import *
 from Output_Layer import *
 from Neuron import *
+import copy
+
+def mse_loss(output, target):
+    return np.mean((output - target) ** 2)
+
+def mse_loss_derivative(output, target):
+    return output - target
+
+def cross_entropy_loss(output, target):
+    epsilon = 1e-15  # For numerical stability
+    output = np.clip(output, epsilon, 1 - epsilon)
+    return -np.sum(target * np.log(output))
+
+def cross_entropy_loss_derivative(output, target):
+    return output - target  # Simplifies when using softmax activation
 
 class Model:
-    def __init__(self, Layers):
+    def __init__(self, Layers, loss_function='mse'):
         self.Layers = Layers
+        self.loss_function = loss_function
         
     def get_Layers(self):
         return self.Layers
@@ -28,15 +44,18 @@ class Model:
     
     def dactivation(self, neuron, input):
         activation = neuron.get_activation()
-        raw_output = input  # Since 'input' here is the raw output of the neuron
+        raw_output = input  # Raw output of the neuron
         if activation == 'sigmoid':
             return neuron.dsigmoid(raw_output)
         elif activation == 'relu':
             return neuron.drelu(raw_output)
         elif activation == 'lrelu':
             return neuron.dlrelu(raw_output)
+        elif activation == 'softmax':
+            return 1  # Derivative handled in loss derivative
         else:
             return 1
+
         
     def summary(self):
         for l in self.get_Layers():
@@ -49,6 +68,8 @@ class Model:
         print('Output Shape:',len(self.get_Layers()[-1].get_neurons()))
     
     def fit(self, X, y, learning_rate, epochs=1):
+        best_model = copy.deepcopy(self)
+        best_err = float('inf')
         err = []
         for epoch in range(epochs):
             # Shuffle the dataset at the beginning of each epoch
@@ -59,34 +80,47 @@ class Model:
             
             epoch_error = []
             for x_idx in range(len(X)):
+                print(f"Training sample {x_idx + 1}/{len(X)}", end='\r')
                 # Forward pass: store activations and raw outputs
                 activations = [X[x_idx]]
                 raw_outputs = []
                 input = X[x_idx]
                 for layer in self.get_Layers():
-                    layer_activations = []
-                    layer_raw_outputs = []
-                    for neuron in layer.get_neurons():
-                        raw_output = neuron.raw_pass(input)
-                        activation = neuron.step_pass(input)
-                        layer_raw_outputs.append(raw_output)
-                        layer_activations.append(activation)
-                    raw_outputs.append(layer_raw_outputs)
-                    activations.append(layer_activations)
-                    input = layer_activations
+                    if isinstance(layer, Output_Layer) and layer.activation == 'softmax':
+                        raw_output = np.array([neuron.raw_pass(input) for neuron in layer.get_neurons()])
+                        activation = layer.softmax(raw_output)
+                        raw_outputs.append(raw_output)
+                        activations.append(activation)
+                        input = activation
+                    else:
+                        layer_activations = []
+                        layer_raw_outputs = []
+                        for neuron in layer.get_neurons():
+                            raw_output = neuron.raw_pass(input)
+                            activation = neuron.step_pass(input)
+                            layer_raw_outputs.append(raw_output)
+                            layer_activations.append(activation)
+                        raw_outputs.append(layer_raw_outputs)
+                        activations.append(layer_activations)
+                        input = layer_activations
 
-                # Compute error at the output layer
                 output_activations = np.array(activations[-1])
                 target = np.array(y[x_idx])
-                error_output_layer = output_activations - target
 
-                # Compute Mean Squared Error (MSE) for this sample
-                sample_mse = np.mean(error_output_layer ** 2)
-                epoch_error.append(sample_mse)
+                # Compute loss and error based on the specified loss function
+                if self.loss_function == 'mse':
+                    error_output_layer = mse_loss_derivative(output_activations, target)
+                    sample_loss = mse_loss(output_activations, target)
+                elif self.loss_function == 'cross_entropy':
+                    error_output_layer = cross_entropy_loss_derivative(output_activations, target)
+                    sample_loss = cross_entropy_loss(output_activations, target)
+                else:
+                    raise ValueError("Unsupported loss function")
+
+                epoch_error.append(sample_loss)
 
                 # Backpropagation
-                deltas = [error_output_layer * np.array(
-                    [self.dactivation(neuron, raw_outputs[-1][i]) for i, neuron in enumerate(self.get_Layers()[-1].get_neurons())])]
+                deltas = [error_output_layer]
 
                 # Backpropagate the error
                 for l in range(len(self.get_Layers()) - 2, -1, -1):
@@ -100,8 +134,6 @@ class Model:
                         delta_i = error * d_activation
                         delta.append(delta_i)
                     deltas.insert(0, delta)
-                # print(self.get_Layers()[0].get_neurons()[0].get_weights())
-                print(deltas)
                 # Update weights
                 for l in range(len(self.get_Layers())):
                     layer = self.get_Layers()[l]
@@ -112,9 +144,12 @@ class Model:
                         adj_weights = weights[:-1] - learning_rate * delta_i * input_activation
                         bias = weights[-1] - learning_rate * delta_i
                         neuron.change_weights(np.append(adj_weights, bias))
+                if sample_loss < best_err:
+                    best_err = sample_loss
+                    best_model = copy.deepcopy(self)
 
-            # Append MSE errors for this epoch
+            # Append loss errors for this epoch
             err.extend(epoch_error)
-            print(f"Epoch {epoch + 1}/{epochs}, Average MSE: {np.mean(epoch_error)}")
+            print(f"Epoch {epoch + 1}/{epochs}, Average Loss: {np.mean(epoch_error)}")
 
-        return err
+        return err, best_model

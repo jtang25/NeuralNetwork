@@ -10,6 +10,7 @@ class Output_Layer:
         for x in range(output_shape):
             neuron_layer = np.append(neuron_layer,Perceptron(n_of_weights=input_shape, step=activation_func, activation=activation_func))
         self.neurons = neuron_layer
+        self.activation = activation_func
         
     def get_neuron(self, n):
         return self.neurons[n]
@@ -21,9 +22,11 @@ class Output_Layer:
         self.neurons = adj_neurons
     
     def forward_pass(self, X):
-        output = np.array([])
-        for neuron in self.neurons:
-            output = np.append(output,neuron.step_pass(X))
+        raw_outputs = np.array([neuron.raw_pass(X) for neuron in self.neurons])
+        if self.activation == 'softmax':
+            output = self.softmax(raw_outputs)
+        else:
+            output = np.array([neuron.step_pass(X) for neuron in self.neurons])
         return output
     
     def relu(self, input):
@@ -48,13 +51,17 @@ class Output_Layer:
         if input>0:
             return input
         else:
-            return 0.1*input
+            return 0.01*input
     
     def dlrelu(self, input):
         if input>0:
             return 1
         else:
-            return 0.1
+            return 0.01
+    
+    def softmax(self, input_vector):
+        e_x = np.exp(input_vector - np.max(input_vector))
+        return e_x / e_x.sum(axis=0)
     
     def dactivation(self, neuron, input):
         activation = neuron.get_activation()

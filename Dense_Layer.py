@@ -40,13 +40,13 @@ class Dense_Layer:
         if input>0:
             return input
         else:
-            return 0.1*input
+            return 0.01*input
     
     def dlrelu(self, input):
         if input>0:
             return 1
         else:
-            return 0.1
+            return 0.01
 
     def sigmoid(self, input):
         return 1/(1+np.e**(-input))

@@ -17,26 +17,27 @@ def lrelu(input):
     if input>0:
         return input
     else:
-        return 0.1*input
+        return 0.01*input
 
 def dlrelu(input):
     if input>0:
         return 1
     else:
-        return 0.1
+        return 0.01
 
 def sigmoid(input):
-    return 1/(1+np.e**(-input))
+    return 1/(1+np.exp(-input))
 
 def dsigmoid(input):
-    return (np.e**(-input))/((1+(np.e**(-input)))**2)
+    s = sigmoid(input)
+    return s * (1 - s)
 
 def none(input):
     return 1
 
 class Perceptron:
     def __init__(self, n_of_weights, step, activation):
-        self.weights = np.random.uniform(-1,1,n_of_weights+1)
+        self.weights = np.random.randn(n_of_weights + 1) * np.sqrt(2. / n_of_weights)
         self.step = step
         self.activation = activation
         
@@ -72,10 +73,9 @@ class Perceptron:
         return output
     
     def step_pass(self, input):
-        output = self.weights[len(self.weights)-1]
-        for x in range(len(self.weights)-1):
-            output = output + self.weights[x]*input[x]
-        match self.get_step():
+        output = self.raw_pass(input)
+        activation = self.get_step()
+        match activation:
             case "relu":
                 output = relu(output)
             case "sigmoid":
