@@ -72,7 +72,6 @@ class Model:
         best_err = float('inf')
         err = []
         for epoch in range(epochs):
-            # Shuffle the dataset at the beginning of each epoch
             indices = np.arange(len(X))
             np.random.shuffle(indices)
             X = X[indices]
@@ -81,7 +80,6 @@ class Model:
             epoch_error = []
             for x_idx in range(len(X)):
                 print(f"Training sample {x_idx + 1}/{len(X)}", end='\r')
-                # Forward pass: store activations and raw outputs
                 activations = [X[x_idx]]
                 raw_outputs = []
                 input = X[x_idx]
@@ -107,7 +105,6 @@ class Model:
                 output_activations = np.array(activations[-1])
                 target = np.array(y[x_idx])
 
-                # Compute loss and error based on the specified loss function
                 if self.loss_function == 'mse':
                     error_output_layer = mse_loss_derivative(output_activations, target)
                     sample_loss = mse_loss(output_activations, target)
@@ -119,10 +116,8 @@ class Model:
 
                 epoch_error.append(sample_loss)
 
-                # Backpropagation
                 deltas = [error_output_layer]
 
-                # Backpropagate the error
                 for l in range(len(self.get_Layers()) - 2, -1, -1):
                     layer = self.get_Layers()[l]
                     next_layer = self.get_Layers()[l + 1]
@@ -134,7 +129,6 @@ class Model:
                         delta_i = error * d_activation
                         delta.append(delta_i)
                     deltas.insert(0, delta)
-                # Update weights
                 for l in range(len(self.get_Layers())):
                     layer = self.get_Layers()[l]
                     input_activation = np.array(activations[l])
