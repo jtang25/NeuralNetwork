@@ -2,11 +2,13 @@ import numpy as np
 import matplotlib as plt
 from Dense_Layer import *
 from Output_Layer import *
+from Convolutional_Layer import *   
+from Flatten import *
 from Neuron import *
 import copy
 
 def mse_loss(output, target):
-    return np.mean((output - target) ** 2)
+        return np.mean((output - target) ** 2)
 
 def mse_loss_derivative(output, target):
     return output - target
@@ -55,13 +57,14 @@ class Model:
             return 1  # Derivative handled in loss derivative
         else:
             return 1
-
         
     def summary(self):
         for l in self.get_Layers():
             layer_type = str(type(l))
             if 'Dense' in layer_type:
                 print('Dense Layer  |',len(l.get_neurons()),'neurons |',len(l.get_neurons()[0].get_weights())-1,'weights | 1 bias')
+            elif 'Convolutional' in layer_type:
+                print('Convolutional Layer |',len(l.get_filters()),'filters | filter size:',len(l.get_filters()[0]),'x',len(l.get_filters()[0][0]),'| stride:',l.get_stride(),'| padding:',l.get_padding())
             elif 'Output' in layer_type:
                 print('Output Layer |',len(l.get_neurons()),'outputs |',len(l.get_neurons()[0].get_weights())-1,'weights | 1 bias')
         print('Input Shape:',len(self.get_Layers()[0].get_neurons()[0].get_weights())-1)
@@ -76,7 +79,7 @@ class Model:
             np.random.shuffle(indices)
             X = X[indices]
             y = y[indices]
-            
+
             epoch_error = []
             for x_idx in range(len(X)):
                 print(f"Training sample {x_idx + 1}/{len(X)}", end='\r')
@@ -88,6 +91,16 @@ class Model:
                         raw_output = np.array([neuron.raw_pass(input) for neuron in layer.get_neurons()])
                         activation = layer.softmax(raw_output)
                         raw_outputs.append(raw_output)
+                        activations.append(activation)
+                        input = activation
+                    elif isinstance(layer, Convolutional_Layer):
+                        raw_output, activation = layer.forward_pass(input), layer.output
+                        raw_outputs.append(raw_output)
+                        activations.append(activation)
+                        input = activation
+                    elif isinstance(layer, Flatten):  # Handle Flatten layer
+                        activation = layer.forward_pass(input)
+                        raw_outputs.append(None)  # No raw outputs for Flatten
                         activations.append(activation)
                         input = activation
                     else:
@@ -117,27 +130,39 @@ class Model:
                 epoch_error.append(sample_loss)
 
                 deltas = [error_output_layer]
-
                 for l in range(len(self.get_Layers()) - 2, -1, -1):
                     layer = self.get_Layers()[l]
                     next_layer = self.get_Layers()[l + 1]
-                    delta = []
-                    for i, neuron in enumerate(layer.get_neurons()):
-                        d_activation = self.dactivation(neuron, raw_outputs[l][i])
-                        error = sum([deltas[0][k] * next_layer.get_neurons()[k].get_weights()[i]
-                                    for k in range(len(next_layer.get_neurons()))])
-                        delta_i = error * d_activation
-                        delta.append(delta_i)
-                    deltas.insert(0, delta)
-                for l in range(len(self.get_Layers())):
-                    layer = self.get_Layers()[l]
-                    input_activation = np.array(activations[l])
-                    for i, neuron in enumerate(layer.get_neurons()):
-                        delta_i = deltas[l][i]
-                        weights = neuron.get_weights()
-                        adj_weights = weights[:-1] - learning_rate * delta_i * input_activation
-                        bias = weights[-1] - learning_rate * delta_i
-                        neuron.change_weights(np.append(adj_weights, bias))
+                    if isinstance(layer, Flatten):
+                        delta = np.array([])
+                        input_activation = np.array(activations[l])
+                        for i, neuron in enumerate(layer.get_neurons()):
+                            d_activation = self.dactivation(neuron, raw_outputs[l][i])
+                            error = sum([deltas[0][k] * next_layer.get_neurons()[k].get_weights()[i]
+                                        for k in range(len(next_layer.get_neurons()))])
+                            delta_i = error * d_activation
+                        layer.backward_pass(delta)
+                        deltas.insert(0, delta)
+                    elif isinstance(layer, Convolutional_Layer):
+                        d_output = deltas[0]  # Error for this layer
+                        input_activation = np.array(activations[l])  # Input to this layer
+
+                        d_input = layer.backward_pass(d_output, learning_rate)
+
+                        deltas.insert(0, d_input)
+                    else:
+                        delta = np.array([])
+                        input_activation = np.array(activations[l])
+                        for i, neuron in enumerate(layer.get_neurons()):
+                            d_activation = self.dactivation(neuron, raw_outputs[l][i])
+                            error = sum([deltas[0][k] * next_layer.get_neurons()[k].get_weights()[i]
+                                        for k in range(len(next_layer.get_neurons()))])
+                            delta_i = error * d_activation
+                            weights = neuron.get_weights()
+                            adj_weights = weights[:-1] - learning_rate * delta_i * input_activation
+                            bias = weights[-1] - learning_rate * delta_i
+                            neuron.change_weights(np.append(adj_weights, bias))
+
                 if sample_loss < best_err:
                     best_err = sample_loss
                     best_model = copy.deepcopy(self)
